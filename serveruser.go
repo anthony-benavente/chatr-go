@@ -2,13 +2,13 @@ package chatr
 
 import (
 	"bufio"
-	"fmt"
 	"net"
 )
 
 // ServerUser This struct represents users that are connected. This gives
 // us an interface to talk to connected clients.
 type ServerUser struct {
+	username       string
 	conn           net.Conn
 	incoming       chan string
 	outgoing       chan string
@@ -17,8 +17,9 @@ type ServerUser struct {
 
 // NewChatrServerUser Creates a new user in the chatr server with the given
 // network connection
-func NewServerUser(conn net.Conn) *ServerUser {
+func NewServerUser(username string, conn net.Conn) *ServerUser {
 	result := new(ServerUser)
+	result.username = username
 	result.conn = conn
 	result.incoming = make(chan string)
 	result.outgoing = make(chan string)
@@ -44,7 +45,6 @@ func (user *ServerUser) Start() {
 	}()
 
 	for data := range user.outgoing {
-		fmt.Println("[Server] Wrote data out to ", user.conn.RemoteAddr().String())
 		writer.WriteString(data)
 		writer.Flush()
 	}

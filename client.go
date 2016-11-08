@@ -65,7 +65,7 @@ func NewClient(host string, port int) *Client {
 // Start This function connects to the specified server and then Continuously
 // waits for the server to send information. This function does not block
 // because it uses go routines.
-func (client *Client) Start() {
+func (client *Client) Start(username string) {
 	fmt.Printf("[Client] Connecting to %v:%v\n", client.host, client.port)
 	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", client.host, client.port))
 
@@ -77,9 +77,11 @@ func (client *Client) Start() {
 
 	go client.read()
 	go client.write()
+
+	client.Send(username)
 }
 
 // Send Sends a message to the connected server
 func (client *Client) Send(message string) {
-	client.Outgoing <- message
+	client.Outgoing <- strings.TrimSpace(message) + "\n"
 }

@@ -1,9 +1,11 @@
 package chatr
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 )
 
@@ -34,22 +36,31 @@ func NewChatrServer(host string, port int) (result *Server) {
 func (server *Server) handleConnection(conn net.Conn) {
 	fmt.Printf("[Server] Got connected from %v\n", conn.RemoteAddr().String())
 
+	// Username should be stored in first 20 bytes
+	reader := bufio.NewReader(conn)
+
+	// First line from user should be the username
+	username, _ := reader.ReadString('\n')
+	username = strings.TrimSpace(username)
+
 	// Add connection to list of connected
-	newUser := NewServerUser(conn)
+	newUser := NewServerUser(username, conn)
 	newUser.OnDisconnected = func() {
-		server.Broadcast(fmt.Sprintf("User %q disconnected.", newUser.conn.RemoteAddr()))
+		fmt.Printf("[Server] %v disconnected from server\n", newUser.username)
+		server.Broadcast(fmt.Sprintf("%v disconnected.", newUser.username))
 		close(newUser.incoming)
 		close(newUser.outgoing)
-		delete(server.connected, newUser.conn.RemoteAddr().String())
+		delete(server.connected, newUser.username)
 	}
 	server.mu.Lock()
-	server.connected[conn.RemoteAddr().String()] = newUser
+	server.connected[newUser.username] = newUser
 	server.mu.Unlock()
 	go newUser.Start()
 
+	fmt.Printf("[Server] %v connected to the server\n", username)
 	go func() {
 		for data := range newUser.incoming {
-			server.Broadcast(fmt.Sprintf("[%q] %v", newUser.conn.RemoteAddr(), data))
+			server.Broadcast(fmt.Sprintf("[%q] %v", newUser.username, data))
 		}
 	}()
 }
