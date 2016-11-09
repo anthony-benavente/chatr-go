@@ -6,15 +6,15 @@ import (
 	"log"
 	"os"
 
-	"strings"
+	"flag"
 
-	"strconv"
+	"os/user"
 
 	chatr "github.com/anthony-benavente/chatr-go"
 )
 
 func usageQuit() {
-	log.Fatal("Usage: chatr <username> <host>:<port>")
+	log.Fatal("Usage: chatr <username> -h host -p port")
 }
 
 func main() {
@@ -22,21 +22,16 @@ func main() {
 		usageQuit()
 	}
 
-	var host string
-	var port int
+	currentUser, _ := user.Current()
 
-	if addr := strings.Split(os.Args[2], ":"); len(addr) == 2 {
-		host = addr[0]
-		if pport, err := strconv.Atoi(addr[1]); err != nil {
-			usageQuit()
-		} else {
-			port = pport
-		}
-	}
+	host := flag.String("h", "localhost", "-h <hostname>")
+	port := flag.Int("p", 8080, "-p <port>")
+	user := flag.String("u", currentUser.Username, "-u <username>")
+	flag.Parse()
 
 	stdin := bufio.NewReader(os.Stdin)
-	client := chatr.NewClient(host, port)
-	client.Start(os.Args[1])
+	client := chatr.NewClient(*host, *port)
+	client.Start(*user)
 	go func() {
 		for data := range client.Incoming {
 			fmt.Println(data)
